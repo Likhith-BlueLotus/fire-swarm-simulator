@@ -1,0 +1,103 @@
+spec_version: 1
+
+# ---------------------------------------------------------------------------
+# Environment identity
+# ---------------------------------------------------------------------------
+name:        fire-swarm-simulator
+version:     "1.1.0"
+description: >
+  Decentralised MARL UAV Firefighting Environment.
+  Features Cellular Automata fire spread (wind-biased Bernoulli),
+  Ornstein-Uhlenbeck wind evolution, Gilbert-Elliott two-state Markov DDS
+  modeling, kinematic speed constraint (MAX_SPEED=2 cells/step), and
+  deterministic programmatic graders. Each episode uses an isolated
+  np.random.default_rng(seed) instance — fully thread-safe under concurrent
+  grading with SUPPORTS_CONCURRENT_SESSIONS=True.
+
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+type:    space
+runtime: fastapi
+app:     server.app:app
+port:    7860
+
+# ---------------------------------------------------------------------------
+# Hardware
+# ---------------------------------------------------------------------------
+hardware_tier: cpu-upgrade
+
+# ---------------------------------------------------------------------------
+# Concurrency
+# ---------------------------------------------------------------------------
+max_concurrent_envs: 2048
+
+# ---------------------------------------------------------------------------
+# Tasks (easy → medium → hard with programmatic graders)
+# ---------------------------------------------------------------------------
+tasks:
+  - id:          easy
+    description: >
+      Single-drone, 15×15 grid, 3 fire seeds spread across quadrants (min 4 cells apart),
+      slow burn (t_burn=8). Drones spawn at row 0; fires in lower 2/3 of grid.
+      MAX_SPEED=2 forces ≥3 navigation steps before first pump. Max 30 steps.
+    difficulty:  easy
+    max_steps:   30
+    grader:      programmatic
+    score_range: [0.0, 1.0]
+    grader_formula: >
+      score = 0.35×fire_suppression_ratio (vs NOP baseline)
+            + 0.25×(1 − burned_cells/225)
+            + 0.20×normalised_cumulative_reward
+            + 0.20×completion_bonus (1.0=all fires out, 0.5=beat baseline)
+
+  - id:          medium
+    description: >
+      Three-drone swarm, 20×20 grid, 5 fire seeds, moderate burn (t_burn=6), 1.5× wind.
+      Drones spawn at row 0 evenly spaced; fires in lower 2/3. MAX_SPEED=2 forces
+      ≥4 navigation steps. Coordinate suppression within 50 steps.
+    difficulty:  medium
+    max_steps:   50
+    grader:      programmatic
+    score_range: [0.0, 1.0]
+    grader_formula: >
+      score = 0.35×fire_suppression_ratio (vs NOP baseline)
+            + 0.25×(1 − burned_cells/400)
+            + 0.20×normalised_cumulative_reward
+            + 0.20×completion_bonus (1.0=all fires out, 0.5=beat baseline)
+
+  - id:          hard
+    description: >
+      Five-drone swarm, 25×25 grid, 8 fire seeds spread across quadrants, fast burn
+      (t_burn=5), double wind (wind_mult=2). MAX_SPEED=2 forces ≥5 navigation steps.
+      Coordinate refuelling under pressure within 70 steps.
+    difficulty:  hard
+    max_steps:   70
+    grader:      programmatic
+    score_range: [0.0, 1.0]
+    grader_formula: >
+      score = 0.35×fire_suppression_ratio (vs NOP baseline)
+            + 0.25×(1 − burned_cells/625)
+            + 0.20×normalised_cumulative_reward
+            + 0.20×completion_bonus (1.0=all fires out, 0.5=beat baseline)
+
+# ---------------------------------------------------------------------------
+# Environment variables (declared for HF Spaces secrets UI)
+# ---------------------------------------------------------------------------
+env:
+  API_BASE_URL:
+    description: "OpenAI-compatible LLM API base URL (e.g. https://router.huggingface.co/v1)"
+    required: true
+  MODEL_NAME:
+    description: "LLM model identifier, e.g. 'meta-llama/Meta-Llama-3.1-70B-Instruct'"
+    required: true
+  HF_TOKEN:
+    description: "Bearer token / API key for the LLM inference endpoint (use HF Spaces secrets)"
+    required: true
+  OPENENV_ENDPOINT:
+    description: "Base URL of this environment server (set automatically by HF Spaces)"
+    required: false
+  WORKERS:
+    description: "Uvicorn worker count (default 1; set to 2 on cpu-upgrade)"
+    required: false
+    default: "1"
