@@ -1,8 +1,10 @@
 """
-Async OpenEnv client for the FireSwarm environment.
+OpenEnv client adapter for the FireSwarm environment.
 
-Converts between the OpenEnv HTTP/WebSocket wire format (raw JSON dicts)
-and the typed Pydantic models defined in models.py.
+Bridges the OpenEnv HTTP/WebSocket wire protocol (raw JSON dicts) and the
+typed Pydantic models defined in models.py. Inherit from the generic
+EnvClient base so callers can use the standard `.sync()` context manager
+pattern without knowing the transport details.
 """
 
 from openenv.core.env_client import EnvClient
@@ -16,18 +18,27 @@ except ImportError:
 
 class FireSwarmEnv(EnvClient[SwarmAction, SwarmObservation, SwarmState]):
     """
-    Typed OpenEnv client for FireSwarm.
+    Typed OpenEnv client for the FireSwarm environment.
 
-    Wraps EnvClient's HTTP/WebSocket machinery and provides two overrides:
-      _step_payload  — serialise SwarmAction → wire dict
-      _parse_result  — deserialise wire dict → StepResult[SwarmObservation]
-      _parse_state   — deserialise wire dict → SwarmState
+    Overrides three EnvClient hooks to convert between the wire format and
+    the FireSwarm Pydantic schemas:
+      _step_payload  — serialise SwarmAction to the JSON dict the server expects
+      _parse_result  — deserialise a /step response into StepResult[SwarmObservation]
+      _parse_state   — deserialise a /state response into SwarmState
     """
 
     def _step_payload(self, action: SwarmAction) -> dict:
+        """Serialise a SwarmAction to the wire format expected by POST /step."""
         return {"node_actions": [a.model_dump() for a in action.node_actions]}
 
     def _parse_result(self, payload: dict) -> StepResult:
+        """
+        Deserialise a /step response envelope into a typed StepResult.
+
+        The server wraps the observation inside an "observation" key; reward
+        and done are also present at the top level of the envelope for
+        compatibility with the base EnvClient consumer.
+        """
         obs_data = payload.get("observation", {})
 
         raw_dds = obs_data.get(
@@ -58,6 +69,7 @@ class FireSwarmEnv(EnvClient[SwarmAction, SwarmObservation, SwarmState]):
         )
 
     def _parse_state(self, payload: dict) -> SwarmState:
+        """Deserialise a /state response into the ground-truth SwarmState model."""
         return SwarmState(
             episode_id=payload.get("episode_id"),
             step_count=int(payload.get("step_count", 0)),

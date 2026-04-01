@@ -1,28 +1,26 @@
 """
-Inference Script — FireSwarm MARL Environment
-===================================
-MANDATORY
-- Before submitting, ensure the following variables are defined in your environment configuration:
-    API_BASE_URL   The API endpoint for the LLM.
-    MODEL_NAME     The model identifier to use for inference.
-    HF_TOKEN       Your Hugging Face / API key.
+FireSwarm MARL Environment — Inference Script
+=============================================
 
-- The inference script must be named `inference.py` and placed in the root directory of the project
-- Participants must use OpenAI Client for all LLM calls using above variables
+Runs one full episode per task (easy / medium / hard) against a live
+FireSwarm server and reports per-task programmatic scores in [0.0, 1.0].
 
-Runs one episode per task (easy / medium / hard) against a live FireSwarm
-server and reports per-task scores in [0.0, 1.0].
+Required environment variables (hackathon spec):
+  API_BASE_URL   OpenAI-compatible LLM endpoint (e.g. HuggingFace Router)
+  MODEL_NAME     Model identifier string (e.g. meta-llama/Meta-Llama-3.1-70B-Instruct)
+  HF_TOKEN       Bearer token / API key for the LLM inference endpoint
 
 Optional:
-  OPENENV_ENDPOINT   FireSwarm server URL (default: http://localhost:7860)
+  OPENENV_ENDPOINT   FireSwarm server base URL (default: http://localhost:7860)
 
 Usage:
   python inference.py
 
-Interaction model (per course modules 2–4):
-  Uses the FireSwarmEnv WebSocket client (client.py) which maintains
-  episode state across steps via a persistent WebSocket connection —
-  the same pattern shown in all OpenEnv course notebooks.
+Interaction model:
+  Uses FireSwarmEnv (client.py), which wraps the OpenEnv WebSocket client.
+  A single persistent WebSocket connection is held for the full episode so
+  that server-side session state (drone positions, fire grid, battery levels)
+  is maintained across every step — consistent with the OpenEnv course pattern.
 """
 
 import json
@@ -72,7 +70,7 @@ log = logging.getLogger("fire_swarm.inference")
 
 
 # ---------------------------------------------------------------------------
-# Health check (plain HTTP, no state needed)
+# Lightweight HTTP helpers (stateless calls — health probe and grader only)
 # ---------------------------------------------------------------------------
 
 def _get(url: str, timeout: int = 10) -> dict:

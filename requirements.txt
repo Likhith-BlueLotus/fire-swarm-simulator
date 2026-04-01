@@ -1,16 +1,21 @@
-# Core OpenEnv framework
+# Core OpenEnv framework — provides Environment base class, session pool,
+# ConcurrencyConfig, and the FastAPI app factory used in server/app.py.
 openenv-core>=0.2.2
 
-# Server-side dependencies for the OpenEnv backend
+# Web server stack — FastAPI handles HTTP + WebSocket routing; uvicorn is
+# the ASGI server launched by the Dockerfile CMD and the pyproject.toml script.
 fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.0.0
 
-# Physics Engine dependencies
+# Physics engine — NumPy backs the Cellular Automata grid, OU wind process,
+# Gaussian dispersion footprint, and all per-step reward arithmetic.
 numpy>=1.26.0
 
-# Inference script client (Mandatory per hackathon rules)
+# LLM client — mandatory per hackathon rules; inference.py uses the OpenAI
+# client pointed at the HuggingFace Router (or any OpenAI-compatible endpoint).
 openai>=1.14.0
 
-
-python-dotenv
+# Environment variable loader — reads .env locally; no-ops gracefully when the
+# file is absent (e.g. inside Docker where variables are injected at runtime).
+python-dotenv>=1.0.0

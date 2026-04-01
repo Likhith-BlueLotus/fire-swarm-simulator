@@ -34,6 +34,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY --chown=appuser:appuser . .
 
+EXPOSE 7860
+
 USER appuser
 
 HEALTHCHECK \

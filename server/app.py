@@ -32,6 +32,7 @@ try:
 except ImportError:
     from models import DroneNodeAction, QoSProfile, SwarmAction, SwarmObservation  # type: ignore[no-redef]
 
+# Populated by the lifespan handler at startup; used to report uptime in /health.
 _SERVER_START_TIME: float = 0.0
 
 _concurrency = ConcurrencyConfig(
@@ -47,7 +48,7 @@ app: FastAPI = create_fastapi_app(
 )
 
 app.title       = "FireSwarm MARL Environment"
-app.version     = "1.0.0"
+app.version     = "1.1.0"
 app.description = (
     "Decentralised swarm simulator for firefighting UAVs. "
     "Implements Cellular Automata fire spread, Gilbert-Elliott DDS network model, "
@@ -74,7 +75,10 @@ async def _lifespan(application: FastAPI):
 
 app.router.lifespan_context = _lifespan
 
-# Remove the default /health so our enriched version takes precedence.
+# The OpenEnv app factory registers a minimal /health stub. Remove it here so
+# our richer /health (which includes version, uptime, and DDS model metadata)
+# takes precedence — the last registered route wins in FastAPI's router, but
+# removing the stub prevents ambiguity in the OpenAPI schema and Swagger UI.
 app.routes[:] = [r for r in app.routes if getattr(r, "path", None) != "/health"]
 
 
@@ -156,13 +160,21 @@ async def list_tasks() -> JSONResponse:
 
 
 class GradeRequest(BaseModel):
-    seed:               int   = 42
-    session_id:         str   = ""
-    cumulative_reward:  float = 0.0
-    steps_taken:        int   = 0
-    episode_done:       bool  = False
-    agent_active_fires: int   = -1   # ground-truth remaining fires sent by client
-    agent_burned_area:  int   = -1   # ground-truth burned cells sent by client
+    """
+    Request body for POST /grade/{task}.
+
+    The client should populate agent_active_fires and agent_burned_area with
+    the final SwarmState values from the episode. These fields bypass the
+    session-pool lookup and prevent the grader from making optimistic assumptions
+    about the agent's end-state that could be exploited for a higher score.
+    """
+    seed:               int   = 42    # must match the seed passed to /reset so the NOP baseline fights the same fire
+    session_id:         str   = ""    # optional: used to look up state from an active WebSocket session
+    cumulative_reward:  float = 0.0   # sum of per-step rewards reported by the environment
+    steps_taken:        int   = 0     # number of steps the agent completed (used to run the NOP baseline for the same duration)
+    episode_done:       bool  = False # True if the episode reached a terminal state (all fires out, timeout, or all drones dead)
+    agent_active_fires: int   = -1    # ground-truth active fire count at episode end; -1 triggers the conservative penalty fallback
+    agent_burned_area:  int   = -1    # ground-truth burned cell count at episode end; -1 triggers the conservative penalty fallback
 
 
 def _run_nop_baseline(task: str, seed: int, num_steps: int) -> dict:

@@ -1,33 +1,55 @@
 #!/usr/bin/env python3
 """
-healthcheck.py — M12: Full /reset + /health readiness smoke test.
-Used by the Dockerfile HEALTHCHECK CMD.
+Docker HEALTHCHECK probe for the FireSwarm MARL environment.
+
+Performs two sequential checks against the running server:
+  1. GET /health   — verifies the FastAPI process is alive and reports status=ok.
+  2. POST /reset   — verifies the environment initialises without error,
+                     confirming the physics engine, Pydantic models, and
+                     session pool are all ready to accept episode requests.
+
+Exit codes follow the Docker HEALTHCHECK convention:
+  0 — healthy (both checks passed)
+  1 — unhealthy (at least one check failed; error written to stderr)
+
+HEALTHCHECK parameters (set in Dockerfile):
+  --interval=30s      probe runs every 30 seconds
+  --timeout=10s       each urllib call has a 5-second hard timeout
+  --start-period=20s  container gets 20 seconds to warm up before first probe
+  --retries=3         three consecutive failures mark the container unhealthy
 """
-import sys
 import json
+import sys
 import urllib.request
 
 BASE = "http://localhost:7860"
 
 try:
-    # Step 1: /health check
+    # Verify the server process is alive and the lifespan handler has completed.
+    # The /health response must contain {"status": "ok"} — any other value or
+    # a connection error means the uvicorn process has not started cleanly.
     with urllib.request.urlopen(BASE + "/health", timeout=5) as resp:
         data = json.load(resp)
-    assert data.get("status") == "ok", f"/health returned: {data}"
+    assert data.get("status") == "ok", f"/health returned unexpected payload: {data}"
 
-    # Step 2: /reset smoke test — proves environment is fully initialised
+    # Verify the environment can initialise a full episode.
+    # Using task=easy (1 drone, 15×15 grid) to keep the probe lightweight;
+    # it exercises the complete reset path: RNG seeding, CA grid setup,
+    # drone placement, and observation serialisation.
     req = urllib.request.Request(
         BASE + "/reset",
-        data=json.dumps({}).encode(),
+        data=json.dumps({"task": "easy"}).encode(),
         method="POST",
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=5) as resp:
         obs = json.load(resp)
-    # Accept both flat observation and nested {observation: ...} envelope
+
+    # Accept both the flat observation dict and the {observation: {...}} envelope
+    # that some OpenEnv server versions wrap the response in.
     assert (
         "local_grid_thermal" in obs or "observation" in obs
-    ), f"/reset returned unexpected payload: {list(obs.keys())}"
+    ), f"/reset returned unexpected payload shape: {list(obs.keys())}"
 
     sys.exit(0)
 

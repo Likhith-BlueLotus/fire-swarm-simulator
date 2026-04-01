@@ -127,7 +127,12 @@ class SwarmObservation(Observation):
     )
     neighbor_states: List[dict] = Field(
         default_factory=list,
-        description="Peer snapshots (id, pos, battery, payload, channel) after G-E filtering.",
+        description=(
+            "Peer snapshots (id, pos, battery, payload, channel) for ALL live drones, "
+            "independent of GE channel state. The 'channel' field reports Good/Bad "
+            "but pos/battery/payload are always ground-truth — use this as the "
+            "authoritative position source, not peer_telemetry."
+        ),
     )
     dds_global_space: DDSDataSpace = Field(
         default_factory=DDSDataSpace,
