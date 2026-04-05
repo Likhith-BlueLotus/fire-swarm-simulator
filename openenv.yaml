@@ -86,18 +86,21 @@ tasks:
 # ---------------------------------------------------------------------------
 env:
   API_BASE_URL:
-    description: "OpenAI-compatible LLM API base URL (e.g. https://router.huggingface.co/v1)"
-    required: true
+    description: "OpenAI-compatible LLM API base URL (default: https://api.openai.com/v1)"
+    required: false
+    default: "https://api.openai.com/v1"
   MODEL_NAME:
-    description: "LLM model identifier, e.g. 'meta-llama/Meta-Llama-3.1-70B-Instruct'"
-    required: true
+    description: "LLM model identifier (default: gpt-4o-mini)"
+    required: false
+    default: "gpt-4o-mini"
   HF_TOKEN:
-    description: "Bearer token / API key for the LLM inference endpoint (use HF Spaces secrets)"
+    description: "Bearer token / API key for the LLM inference endpoint (mandatory — set via HF Spaces secrets)"
     required: true
   OPENENV_ENDPOINT:
-    description: "Base URL of this environment server (set automatically by HF Spaces)"
+    description: "Base URL of this environment server (default: http://localhost:7860)"
     required: false
+    default: "http://localhost:7860"
   WORKERS:
-    description: "Uvicorn worker count (default 1; set to 2 on cpu-upgrade)"
+    description: "Uvicorn worker count (default: 1)"
     required: false
     default: "1"

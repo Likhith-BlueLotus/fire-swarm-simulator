@@ -227,11 +227,11 @@ Key hyperparameter notes:
 | Zero-shot generalisation | Strong — handles unseen seed layouts | Requires retraining for new configs |
 | Reaction latency | ~2–3 s/step (API round-trip) | <1 ms/step (local inference) |
 | Navigation precision | Limited by token-level arithmetic | Exact — policy outputs continuous Δx, Δy |
-| Communication modelling | Ignores GE Bad-channel drops | Can learn QoS-switching policy |
+| Communication modelling | Rules-based QoS switching; gossip-seeded residual fire search | Can learn optimal QoS-switching policy end-to-end |
 | Sample efficiency | 0 environment steps needed | ~500k steps to match LLM on `hard` |
 | Interpretability | Prompt-readable decision trace | Opaque weight tensor |
 
-The LLM baseline scores **0.61 overall** without any environment interaction during training. Medium and hard tasks are fully cleared well within the step budget (score ≥ 0.81), demonstrating genuine multi-drone coordination under communication noise. The easy task is a harder single-drone problem: limited by `REFILL_RATE = 3 kg/tick` and a fire zone 4+ cells from the nearest refill corner, the drone cannot outpace unconstrained CA fire spread in 30 steps. A trained PPO policy would surpass this by learning to time pump activations and minimise refuelling transit — the reward signal is dense enough to support it.
+The LLM baseline scores **0.61 overall** without any environment interaction during training. Medium and hard tasks are fully cleared well within the step budget (scores 0.80 and 0.79 respectively), demonstrating genuine multi-drone coordination under communication noise. The easy task is a harder single-drone problem: limited by `REFILL_RATE = 3 kg/tick` and a fire zone 4+ cells from the nearest refill corner, the drone cannot outpace unconstrained CA fire spread in 30 steps. A trained PPO policy would surpass this by learning to time pump activations and minimise refuelling transit — the reward signal is dense enough to support it.
 
 ---
 
@@ -266,16 +266,16 @@ Measured with `gpt-4o-mini` (temperature=0.2). Tasks require genuine multi-step 
 | Task             | Steps taken | Fires left | Score      |
 | ---------------- | ----------- | ---------- | ---------- |
 | `easy`           | 30 / 30     | 6          | **0.2232** |
-| `medium`         | 22 / 50     | 0          | **0.8148** |
-| `hard`           | 29 / 70     | 0          | **0.8013** |
-| **Overall mean** | —           | —          | **0.6131** |
+| `medium`         | 37 / 50     | 0          | **0.7975** |
+| `hard`           | 35 / 70     | 0          | **0.7946** |
+| **Overall mean** | —           | —          | **0.6051** |
 
 
 ```
-JSON_SCORES: {"easy": 0.2232, "medium": 0.8148, "hard": 0.8013}
+JSON_SCORES: {"easy": 0.2232, "medium": 0.7975, "hard": 0.7946}
 ```
 
-*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. Medium and hard tasks are fully cleared within 22 and 29 steps respectively, well inside the 50- and 70-step budgets. The easy task is the hardest for a single drone: a 15×15 grid with 3 fire seeds requires multiple refuelling trips (REFILL_RATE = 3 kg/tick; fire zone is 4 cells from the nearest corner), and unconstrained CA fire spread outpaces a single drone's suppression rate by step 30. A trained PPO policy would learn to close this gap by optimising pump timing and minimising refuelling transit. Total runtime: well within the 20-minute cap.*
+*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. Medium and hard tasks are fully cleared well inside the 50- and 70-step budgets — fires reach zero on both. The easy task is the hardest for a single drone: a 15×15 grid with 3 fire seeds requires multiple refuelling trips (REFILL_RATE = 3 kg/tick; fire zone is 4+ cells from the nearest corner), and unconstrained CA fire spread outpaces a single drone's suppression rate by step 30. A trained PPO policy would learn to close this gap by optimising pump timing and minimising refuelling transit. Total runtime: well within the 20-minute cap.*
 
 ---
 
@@ -311,9 +311,9 @@ curl http://localhost:7860/health
 ### Run inference (all 3 tasks)
 
 ```bash
-export API_BASE_URL="https://router.huggingface.co/v1"
-export MODEL_NAME="meta-llama/Meta-Llama-3.1-70B-Instruct"
-export HF_TOKEN="hf_..."
+export API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="gpt-4o-mini"
+export HF_TOKEN="<your-api-key>"
 export OPENENV_ENDPOINT="http://localhost:7860"
 
 python inference.py
@@ -327,9 +327,9 @@ docker build -t fire-swarm .
 
 # Run (maps HF Spaces port 7860)
 docker run -p 7860:7860 \
-  -e API_BASE_URL=https://router.huggingface.co/v1 \
-  -e MODEL_NAME=meta-llama/Meta-Llama-3.1-70B-Instruct \
-  -e HF_TOKEN=hf_... \
+  -e API_BASE_URL=https://api.openai.com/v1 \
+  -e MODEL_NAME=gpt-4o-mini \
+  -e HF_TOKEN=<your-api-key> \
   fire-swarm
 
 # Verify

@@ -10,9 +10,9 @@
 #
 # Run:
 #   docker run -p 7860:7860 \
-#     -e API_BASE_URL=https://router.huggingface.co/v1 \
-#     -e MODEL_NAME=meta-llama/Meta-Llama-3-70B-Instruct \
-#     -e HF_TOKEN=hf_...                                 \
+#     -e API_BASE_URL=https://api.openai.com/v1 \
+#     -e MODEL_NAME=gpt-4o-mini               \
+#     -e HF_TOKEN=<your-api-key>              \
 #     fire-swarm
 # =============================================================================
 
@@ -48,4 +48,4 @@ HEALTHCHECK \
 ENV WORKERS=1
 ENV PYTHONPATH=/app
 
-CMD uvicorn server.app:app --host 0.0.0.0 --port 7860 --workers ${WORKERS} --log-level info
+CMD ["sh", "-c", "uvicorn server.app:app --host 0.0.0.0 --port 7860 --workers ${WORKERS} --log-level info"]
