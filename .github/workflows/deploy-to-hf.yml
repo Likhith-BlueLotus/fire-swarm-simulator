@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -12,11 +15,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           fetch-depth: 0
           lfs: true
+
+      - name: Verify HF_TOKEN is set
+        run: |
+          if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+            echo "ERROR: HF_TOKEN secret is not set in GitHub repository secrets."
+            echo "Go to: https://github.com/Likhith-BlueLotus/fire-swarm-simulator/settings/secrets/actions"
+            exit 1
+          fi
+          echo "HF_TOKEN is set (length: ${#HF_TOKEN} chars)"
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Push to Hugging Face Space
         env:
@@ -24,7 +36,5 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-
-          git remote add space https://Le0AtiS:$HF_TOKEN@huggingface.co/spaces/Le0AtiS/fire-swarm-simulator
-
+          git remote add space https://Le0AtiS:${HF_TOKEN}@huggingface.co/spaces/Le0AtiS/fire-swarm-simulator
           git push space main --force
