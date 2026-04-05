@@ -1,3 +1,21 @@
+---
+title: FireSwarm — Decentralised Firefighting UAV Swarm Environment
+emoji: 🔥
+colorFrom: red
+colorTo: orange
+sdk: docker
+app_port: 7860
+license: bsd-3-clause
+short_description: MARL UAV firefighting environment with CA fire spread and Gilbert-Elliott DDS
+tags:
+  - reinforcement-learning
+  - multi-agent
+  - simulation
+  - openenv
+  - wildfire
+  - uav
+---
+
 # FireSwarm — Decentralised Firefighting UAV Swarm Environment
 
 An [OpenEnv](https://github.com/meta-pytorch/OpenEnv)-compatible multi-agent reinforcement learning environment that simulates a real-world wildfire and infrastructure fire suppression mission using a fleet of autonomous UAVs.
@@ -289,7 +307,7 @@ JSON_SCORES: {"easy": 0.2232, "medium": 0.7975, "hard": 0.7946}
 ### Local installation
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Likhith-BlueLotus/fire-swarm-simulator.git
 cd fire_swarm_simulator
 
 python -m venv venv && source venv/bin/activate
@@ -362,6 +380,7 @@ curl http://localhost:7860/health
 fire_swarm_simulator/           ← repo root (this directory is uploaded to HF Spaces)
 ├── Dockerfile                  # Container build — HF Spaces & validator pick this up
 ├── .env.example                # Environment variable template (copy to .env locally)
+├── LICENSE                     # BSD-3-Clause
 ├── README.md                   # This file
 ├── inference.py                # Baseline inference script (hackathon spec requirement)
 ├── openenv.yaml                # OpenEnv manifest — tasks, hardware tier, env vars
@@ -370,9 +389,15 @@ fire_swarm_simulator/           ← repo root (this directory is uploaded to HF 
 ├── healthcheck.py              # Docker HEALTHCHECK script (polls /health)
 ├── models.py                   # Pydantic types: SwarmAction, SwarmObservation, SwarmState
 ├── client.py                   # Async OpenEnv client: FireSwarmEnv
-└── server/
-    ├── app.py                  # FastAPI entrypoint + /grade programmatic grader
-    └── environment.py          # FireSwarmEnvironment physics engine (CA + GE + OU)
+├── server/
+│   ├── app.py                  # FastAPI entrypoint + /grade programmatic grader
+│   └── environment.py          # FireSwarmEnvironment physics engine (CA + GE + OU)
+└── tests/
+    ├── conftest.py             # Shared pytest fixtures
+    ├── test_models.py          # Pydantic model validation tests
+    ├── test_environment.py     # CA physics, reward function, grader tests
+    ├── test_api.py             # FastAPI endpoint integration tests
+    └── test_client.py          # Async FireSwarmEnv client tests
 ```
 
 ---
