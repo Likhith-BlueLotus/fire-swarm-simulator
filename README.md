@@ -2,11 +2,11 @@
 title: FireSwarm — Decentralised Firefighting UAV Swarm Environment
 emoji: 🔥
 colorFrom: red
-colorTo: orange
+colorTo: yellow
 sdk: docker
 app_port: 7860
 license: bsd-3-clause
-short_description: MARL UAV firefighting environment with CA fire spread and Gilbert-Elliott DDS
+short_description: MARL UAV firefighting sim with CA fire spread & DDS
 tags:
   - reinforcement-learning
   - multi-agent
