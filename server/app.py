@@ -91,7 +91,7 @@ async def health() -> JSONResponse:
     The `status: ok` field is required by the OpenEnv readiness contract.
     """
     payload: Dict[str, Any] = {
-        "status":         "ok",
+        "status":         "healthy",
         "uptime_seconds": round(time.time() - _SERVER_START_TIME, 2),
         "environment": {
             "name":                    "fire_swarm_simulator",
@@ -151,6 +151,32 @@ _TASK_METADATA: Dict[str, dict] = {
         "grader":      "programmatic",
     },
 }
+
+
+@app.get("/metadata", summary="Environment metadata", tags=["Operations"])
+async def get_metadata() -> JSONResponse:
+    """OpenEnv validator requires GET /metadata returning name and description."""
+    return JSONResponse(content={
+        "name":        "fire-swarm-simulator",
+        "description": (
+            "Decentralised MARL UAV Firefighting Environment. "
+            "Features Cellular Automata fire spread, Gilbert-Elliott two-state Markov DDS, "
+            "kinematic speed constraint (MAX_SPEED=2), and deterministic programmatic graders."
+        ),
+        "version":     app.version,
+        "tasks":       ["easy", "medium", "hard"],
+    }, status_code=200)
+
+
+@app.get("/schema", summary="Action / observation / state schemas", tags=["Operations"])
+async def get_schema() -> JSONResponse:
+    """OpenEnv validator requires GET /schema returning action, observation, state as dicts."""
+    from models import SwarmAction, SwarmObservation, SwarmState
+    return JSONResponse(content={
+        "action":      SwarmAction.model_json_schema(),
+        "observation": SwarmObservation.model_json_schema(),
+        "state":       SwarmState.model_json_schema(),
+    }, status_code=200)
 
 
 @app.get("/tasks", summary="List all graded tasks", tags=["Tasks"])
