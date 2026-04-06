@@ -75,11 +75,14 @@ async def _lifespan(application: FastAPI):
 
 app.router.lifespan_context = _lifespan
 
-# The OpenEnv app factory registers a minimal /health stub. Remove it here so
-# our richer /health (which includes version, uptime, and DDS model metadata)
-# takes precedence — the last registered route wins in FastAPI's router, but
-# removing the stub prevents ambiguity in the OpenAPI schema and Swagger UI.
-app.routes[:] = [r for r in app.routes if getattr(r, "path", None) != "/health"]
+# The OpenEnv app factory registers minimal stubs for /health, /metadata, and
+# /schema. Remove them here so our richer custom implementations take precedence.
+# FastAPI uses first-match routing, so the framework stubs must be evicted before
+# our routes are registered below.
+app.routes[:] = [
+    r for r in app.routes
+    if getattr(r, "path", None) not in ("/health", "/metadata", "/schema")
+]
 
 
 @app.get("/health", summary="Readiness probe", tags=["Operations"])
