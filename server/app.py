@@ -171,7 +171,7 @@ async def get_metadata() -> JSONResponse:
         ),
         "version":           app.version,
         "author":            "Likhith M (Likhith-BlueLotus)",
-        "author_email":      "likhithmanjunath@outlook.com",
+        "author_email":      "likhithm2426@gmail.com",
         "github":            "https://github.com/Likhith-BlueLotus/fire-swarm-simulator",
         "space":             "https://huggingface.co/spaces/Le0AtiS/fire-swarm-simulator",
         "license":           "BSD-3-Clause",
