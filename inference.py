@@ -307,9 +307,12 @@ def _format_obs(obs: SwarmObservation, task: str) -> str:
     fire_zone_row = grid_size // 3 * 2   # 10 for easy, 13 for medium, 16 for hard
     grid_col_mid  = grid_size // 2
 
-    # Refill threshold: below 2.0 kg a drone cannot complete a meaningful Gaussian drop
-    # (centre cell costs 1 kg; cardinal 0.5 kg; diagonal 0.3 kg). Refuel now.
-    REFILL_THRESHOLD    = 2.0
+    # Refill threshold: below this payload a drone cannot complete a meaningful Gaussian drop.
+    # For multi-drone tasks (medium/hard) 2.0 kg is fine — another drone covers while one refuels.
+    # For easy (single drone) we keep suppressing until 1.6 kg (the absolute minimum for one
+    # centre-cell drop) so the sole drone does not abandon active fires unnecessarily.
+    n_drones = len(active_ids)
+    REFILL_THRESHOLD    = 1.6 if n_drones == 1 else 2.0
     FULL_TANK_THRESHOLD = 9.5   # MAX_PAYLOAD(10.0) − 0.5; must match server environment.py
 
     corners = [
