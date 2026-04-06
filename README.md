@@ -249,7 +249,7 @@ Key hyperparameter notes:
 | Sample efficiency | 0 environment steps needed | ~500k steps to match LLM on `hard` |
 | Interpretability | Prompt-readable decision trace | Opaque weight tensor |
 
-The LLM baseline scores **0.61 overall** without any environment interaction during training. Medium and hard tasks are fully cleared well within the step budget (scores 0.80 and 0.79 respectively), demonstrating genuine multi-drone coordination under communication noise. The easy task is a harder single-drone problem: limited by `REFILL_RATE = 3 kg/tick` and a fire zone 4+ cells from the nearest refill corner, the drone cannot outpace unconstrained CA fire spread in 30 steps. A trained PPO policy would surpass this by learning to time pump activations and minimise refuelling transit — the reward signal is dense enough to support it.
+The LLM baseline scores **0.60 overall** without any environment interaction during training. Medium and hard tasks are fully cleared well within the step budget (scores 0.80 and 0.79 respectively), demonstrating genuine multi-drone coordination under communication noise. The easy task is a harder single-drone problem: limited by `REFILL_RATE = 3 kg/tick` and a fire zone 4+ cells from the nearest refill corner, the drone cannot outpace unconstrained CA fire spread in 30 steps. A trained PPO policy would surpass this by learning to time pump activations and minimise refuelling transit — the reward signal is dense enough to support it.
 
 ---
 
@@ -283,17 +283,17 @@ Measured with `gpt-4o-mini` (temperature=0.2). Tasks require genuine multi-step 
 
 | Task             | Steps taken | Fires left | Score      |
 | ---------------- | ----------- | ---------- | ---------- |
-| `easy`           | 30 / 30     | 6          | **0.2232** |
+| `easy`           | 30 / 30     | 15         | **0.2134** |
 | `medium`         | 37 / 50     | 0          | **0.7975** |
 | `hard`           | 35 / 70     | 0          | **0.7946** |
-| **Overall mean** | —           | —          | **0.6051** |
+| **Overall mean** | —           | —          | **0.6018** |
 
 
 ```
-JSON_SCORES: {"easy": 0.2232, "medium": 0.7975, "hard": 0.7946}
+JSON_SCORES: {"easy": 0.2134, "medium": 0.7975, "hard": 0.7946}
 ```
 
-*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. Medium and hard tasks are fully cleared well inside the 50- and 70-step budgets — fires reach zero on both. The easy task is the hardest for a single drone: a 15×15 grid with 3 fire seeds requires multiple refuelling trips (REFILL_RATE = 3 kg/tick; fire zone is 4+ cells from the nearest corner), and unconstrained CA fire spread outpaces a single drone's suppression rate by step 30. A trained PPO policy would learn to close this gap by optimising pump timing and minimising refuelling transit. Total runtime: well within the 20-minute cap.*
+*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. Medium and hard tasks are fully cleared well inside the 50- and 70-step budgets — fires reach zero on both. The easy task is the hardest for a single drone: a 15×15 grid with 3 fire seeds rapidly expands to 15+ active cells by step 10; the single drone executes two full pump cycles (steps 4–6, 20–22) but CA fire spread at `t_burn=8` outpaces suppression by the step-30 deadline. A trained PPO policy would learn to close this gap by optimising pump timing and minimising refuelling transit. Total runtime: well within the 20-minute cap.*
 
 ---
 
@@ -361,7 +361,7 @@ curl http://localhost:7860/health
 
 | Endpoint        | Method    | Description                                                                 |
 | --------------- | --------- | --------------------------------------------------------------------------- |
-| `/health`       | GET       | Readiness probe — returns `{"status":"ok", ...}`                            |
+| `/health`       | GET       | Readiness probe — returns `{"status":"healthy", ...}`                       |
 | `/reset`        | POST      | Start new episode. Body: `{"task": "easy"|"medium"|"hard"}`                 |
 | `/step`         | POST      | Advance one tick. Body: `{"action": {...}, "session_id": "..."}`            |
 | `/state`        | GET       | Current `SwarmState` (episode_id, step_count, fire counts, drone positions) |
