@@ -11,7 +11,7 @@ Required environment variables (hackathon spec):
   HF_TOKEN       Bearer token / API key         (mandatory — no default)
 
 Optional:
-  OPENENV_ENDPOINT   FireSwarm server base URL (default: http://localhost:7860)
+  OPENENV_ENDPOINT   FireSwarm server base URL (https://le0atis-fire-swarm-simulator.hf.space, default: http://localhost:7860)
 
 Usage:
   python inference.py
