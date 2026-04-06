@@ -157,14 +157,29 @@ _TASK_METADATA: Dict[str, dict] = {
 async def get_metadata() -> JSONResponse:
     """OpenEnv validator requires GET /metadata returning name and description."""
     return JSONResponse(content={
-        "name":        "fire-swarm-simulator",
+        "name":              "FireSwarm — Decentralised Firefighting UAV Swarm Environment",
         "description": (
-            "Decentralised MARL UAV Firefighting Environment. "
-            "Features Cellular Automata fire spread, Gilbert-Elliott two-state Markov DDS, "
-            "kinematic speed constraint (MAX_SPEED=2), and deterministic programmatic graders."
+            "A multi-agent reinforcement learning environment simulating autonomous UAV swarms "
+            "performing wildfire and infrastructure fire suppression in communication-degraded, "
+            "high-wind Gulf/UAE scenarios. Features Cellular Automata fire spread with "
+            "Ornstein-Uhlenbeck wind evolution, Gilbert-Elliott two-state Markov DDS packet-loss "
+            "model, kinematic speed constraint (MAX_SPEED=2 cells/step), finite retardant payload "
+            "with corner refuel stations, and deterministic programmatic graders scored against a "
+            "NOP baseline. Three difficulty tiers: easy (1 drone, 15×15), medium (3 drones, 20×20), "
+            "hard (5 drones, 25×25, shamal wind). Directly models real-world scenarios including "
+            "the Abqaiq petrochemical facility strike response."
         ),
-        "version":     app.version,
-        "tasks":       ["easy", "medium", "hard"],
+        "version":           app.version,
+        "author":            "Likhith M (Likhith-BlueLotus)",
+        "author_email":      "likhithmanjunath@outlook.com",
+        "github":            "https://github.com/Likhith-BlueLotus/fire-swarm-simulator",
+        "space":             "https://huggingface.co/spaces/Le0AtiS/fire-swarm-simulator",
+        "license":           "BSD-3-Clause",
+        "tasks":             ["easy", "medium", "hard"],
+        "num_agents":        {"easy": 1, "medium": 3, "hard": 5},
+        "reward_range":      [0.0, 1.0],
+        "tags":              ["marl", "wildfire", "uav", "openenv", "reinforcement-learning", "simulation"],
+        "documentation_url": "https://github.com/Likhith-BlueLotus/fire-swarm-simulator#readme",
     }, status_code=200)
 
 
