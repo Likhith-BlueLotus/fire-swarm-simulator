@@ -40,7 +40,7 @@ class TestHealth:
 
     def test_version_correct(self, client):
         resp = client.get("/health")
-        assert resp.json()["environment"]["version"] == "1.1.0"
+        assert resp.json()["environment"]["version"] == "0.1.0"
 
     def test_ge_model_present(self, client):
         resp = client.get("/health")
@@ -389,7 +389,7 @@ class TestDocs:
 
     def test_openapi_json_version(self, client):
         resp = client.get("/openapi.json")
-        assert resp.json()["info"]["version"] == "1.1.0"
+        assert resp.json()["info"]["version"] == "0.1.0"
 
     @pytest.mark.parametrize("route", ["/reset", "/step", "/health", "/tasks"])
     def test_openapi_routes_present(self, client, route):

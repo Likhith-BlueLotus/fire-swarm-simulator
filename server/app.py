@@ -1,5 +1,5 @@
 """
-FireSwarm FastAPI server — v1.0.1
+FireSwarm FastAPI server — v0.1.0
 
 Exposes the OpenEnv-standard HTTP + WebSocket surface:
 
@@ -48,7 +48,7 @@ app: FastAPI = create_fastapi_app(
 )
 
 app.title       = "FireSwarm MARL Environment"
-app.version     = "1.1.0"
+app.version     = "0.1.0"
 app.description = (
     "Decentralised swarm simulator for firefighting UAVs. "
     "Implements Cellular Automata fire spread, Gilbert-Elliott DDS network model, "
