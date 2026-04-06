@@ -185,7 +185,10 @@ class SwarmState(State):
 
     @field_validator("episode_id", mode="before")
     @classmethod
-    def _validate_uuid4(cls, v: str) -> str:
-        if v is not None and not _UUID4_RE.match(str(v)):
-            raise ValueError(f"episode_id must be UUIDv4; got {v!r}")
-        return str(v)
+    def _validate_uuid4(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v)
+        if not _UUID4_RE.match(s):
+            raise ValueError(f"episode_id must be a valid UUIDv4; got {v!r}")
+        return s

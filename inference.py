@@ -386,7 +386,9 @@ def _format_obs(obs: SwarmObservation, task: str) -> str:
             # extinguishes far more cells per unit payload than hitting an isolated cell.
             # For multi-drone tasks the density bias also prevents all drones clustering
             # on the same isolated fire while a larger clump goes unchecked.
-            all_pool = fires_for_drone  # already deduplicated to ≤4 per drone
+            # Copy to avoid mutating fire_abs[d_id] in-place via sort() below,
+            # which would corrupt the fire list for subsequent drones in this loop.
+            all_pool = list(fires_for_drone)
             def _fire_score(f: List[int]) -> float:
                 density = sum(
                     1 for g in all_pool
@@ -395,8 +397,8 @@ def _format_obs(obs: SwarmObservation, task: str) -> str:
                 prox = 1.0 / (1 + abs(f[0] - cx) + abs(f[1] - cy))
                 return 0.6 * density + 0.4 * prox
 
-            fires_for_drone.sort(key=_fire_score, reverse=True)
-            fx, fy = fires_for_drone[0]
+            all_pool.sort(key=_fire_score, reverse=True)
+            fx, fy = all_pool[0]
             nx = int(max(cx - 2, min(cx + 2, fx)))
             ny = int(max(cy - 2, min(cy + 2, fy)))
 

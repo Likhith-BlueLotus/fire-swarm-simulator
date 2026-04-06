@@ -91,7 +91,7 @@ async def health() -> JSONResponse:
     Returns HTTP 200 with structured readiness detail.
 
     Orchestrators should poll this endpoint before issuing /reset.
-    The `status: ok` field is required by the OpenEnv readiness contract.
+    The `status: healthy` field is required by the OpenEnv readiness contract.
     """
     payload: Dict[str, Any] = {
         "status":         "healthy",
