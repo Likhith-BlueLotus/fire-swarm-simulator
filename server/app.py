@@ -1,5 +1,5 @@
 """
-FireSwarm FastAPI server.
+FireSwarm FastAPI server — v1.0.1
 
 Exposes the OpenEnv-standard HTTP + WebSocket surface:
 
