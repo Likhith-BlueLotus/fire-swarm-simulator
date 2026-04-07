@@ -705,17 +705,23 @@ def _emit_step(step: int, action: SwarmAction, reward: float, done: bool, error:
     )
 
 
-def _emit_end(success: bool, steps: int, rewards: List[float]) -> None:
+def _emit_end(success: bool, steps: int, rewards: List[float], score: float = 0.5) -> None:
     """
     Emit the mandatory [END] line to stdout after the episode closes.
 
     Always emitted — even if the episode raised an exception — so the
     validator can parse a complete run record.
+
+    The score= field is required by the OpenEnv validator — it reads the
+    task score directly from this line. Without it the validator defaults
+    to 0.0 which fails the strictly-between-0-and-1 check.
     """
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    # Clamp score to strictly open interval — validator rejects exactly 0.0 or 1.0
+    safe_score = float(max(0.001, min(0.999, score)))
     print(
         f"[END] success={'true' if success else 'false'}"
-        f" steps={steps} rewards={rewards_str}",
+        f" steps={steps} score={safe_score:.4f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -792,9 +798,9 @@ def run_task(client: OpenAI, task: str, deadline: float) -> Dict[str, Any]:
 
     except Exception as exc:
         log.error("Episode exception in task %s: %s", task, exc)
-        _emit_end(success=False, steps=step, rewards=rewards)
         # Use local fallback scorer — never return exactly 0.0 (validator rejects it).
         fallback_score = _local_score(task, cumulative_reward, step, False, -1)
+        _emit_end(success=False, steps=step, rewards=rewards, score=fallback_score)
         return {
             "task":         task,
             "steps":        step,
@@ -821,7 +827,7 @@ def run_task(client: OpenAI, task: str, deadline: float) -> Dict[str, Any]:
 
     # success = all fires suppressed (active_fires == 0 and done == True)
     success = done and active_fires == 0
-    _emit_end(success=success, steps=step, rewards=rewards)
+    _emit_end(success=success, steps=step, rewards=rewards, score=score)
 
     elapsed = time.time() - t0
     log.info(
@@ -912,7 +918,7 @@ def main() -> None:
             # Use a minimal non-zero score — never 0.0 (validator rejects exactly 0 or 1).
             skip_score = 0.001
             _emit_start(task)
-            _emit_end(success=False, steps=1, rewards=[0.01])
+            _emit_end(success=False, steps=1, rewards=[0.01], score=skip_score)
             results.append({"task": task, "score": skip_score, "skipped": True})
             continue
         results.append(run_task(llm_client, task, deadline))
