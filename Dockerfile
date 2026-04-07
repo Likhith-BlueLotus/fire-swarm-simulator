@@ -5,6 +5,11 @@
 # Exposed port  : 7860  (HF Spaces standard)
 # Runtime user  : appuser (non-root, required by HF Spaces sandbox)
 #
+# Base image uses python:3.11-slim-bullseye (explicit Debian codename tag).
+# The plain "3.11-slim" tag resolves to a manifest list SHA that is cached
+# stale in some build environments; the versioned Debian-codename tag forces
+# a fresh layer lookup and avoids the "unexpected status code" registry error.
+#
 # Build:
 #   docker build -t fire-swarm .
 #
@@ -16,7 +21,7 @@
 #     fire-swarm
 # =============================================================================
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bullseye
 
 RUN useradd --create-home --shell /bin/bash --uid 1000 appuser
 
