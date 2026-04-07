@@ -3,7 +3,7 @@
 Docker HEALTHCHECK probe for the FireSwarm MARL environment.
 
 Performs two sequential checks against the running server:
-  1. GET /health   — verifies the FastAPI process is alive and reports status=ok.
+  1. GET /health   — verifies the FastAPI process is alive and reports status=healthy.
   2. POST /reset   — verifies the environment initialises without error,
                      confirming the physics engine, Pydantic models, and
                      session pool are all ready to accept episode requests.
@@ -26,11 +26,11 @@ BASE = "http://localhost:7860"
 
 try:
     # Verify the server process is alive and the lifespan handler has completed.
-    # The /health response must contain {"status": "ok"} — any other value or
+    # The /health response must contain {"status": "healthy"} — any other value or
     # a connection error means the uvicorn process has not started cleanly.
     with urllib.request.urlopen(BASE + "/health", timeout=5) as resp:
         data = json.load(resp)
-    assert data.get("status") == "ok", f"/health returned unexpected payload: {data}"
+    assert data.get("status") == "healthy", f"/health returned unexpected payload: {data}"
 
     # Verify the environment can initialise a full episode.
     # Using task=easy (1 drone, 15×15 grid) to keep the probe lightweight;

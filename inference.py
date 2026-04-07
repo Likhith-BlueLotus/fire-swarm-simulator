@@ -824,14 +824,19 @@ def _wait_for_server(url: str, max_wait: int = 300, interval: int = 3) -> None:
 
 
 def main() -> None:
-    # HF_TOKEN is the only mandatory credential with no permitted default.
-    if not API_KEY:
-        raise ValueError(
-            "HF_TOKEN environment variable is required but not set.\n"
-            "Export it before running: export HF_TOKEN=hf_..."
-        )
-
+    # Wait for the environment server to be ready FIRST — this is the most
+    # common failure mode when inference.py is launched in the same container.
     _wait_for_server(OPENENV_URL)
+
+    # HF_TOKEN is the only mandatory credential with no permitted default.
+    # Check AFTER server wait so the validator sees the server is healthy
+    # before we error on a missing API key.
+    if not API_KEY:
+        log.error(
+            "HF_TOKEN environment variable is required but not set. "
+            "Set it via: export HF_TOKEN=<your-api-key>"
+        )
+        import sys; sys.exit(1)
 
     llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     deadline   = time.time() + WALL_CLOCK_BUDGET

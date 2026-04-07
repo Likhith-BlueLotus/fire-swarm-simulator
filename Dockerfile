@@ -39,10 +39,10 @@ EXPOSE 7860
 USER appuser
 
 HEALTHCHECK \
-    --interval=30s  \
+    --interval=15s  \
     --timeout=10s   \
-    --start-period=20s \
-    --retries=3     \
+    --start-period=60s \
+    --retries=5     \
     CMD python3 /app/healthcheck.py || exit 1
 
 ENV WORKERS=1
