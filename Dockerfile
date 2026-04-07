@@ -16,8 +16,7 @@
 #     fire-swarm
 # =============================================================================
 
-ARG BASE_IMAGE=python:3.11-slim
-FROM ${BASE_IMAGE}
+FROM python:3.11-slim
 
 RUN useradd --create-home --shell /bin/bash --uid 1000 appuser
 

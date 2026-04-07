@@ -5,8 +5,9 @@ openenv-core>=0.2.2
 # Web server stack — FastAPI handles HTTP + WebSocket routing; uvicorn is
 # the ASGI server launched by the Dockerfile CMD and the pyproject.toml script.
 fastapi>=0.104.0
-uvicorn>=0.24.0
+uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
+websockets>=12.0
 
 # Physics engine — NumPy backs the Cellular Automata grid, OU wind process,
 # Gaussian dispersion footprint, and all per-step reward arithmetic.
