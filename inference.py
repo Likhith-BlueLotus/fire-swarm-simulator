@@ -788,7 +788,7 @@ def run_task(client: OpenAI, task: str, deadline: float) -> Dict[str, Any]:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def _wait_for_server(url: str, max_wait: int = 120, interval: int = 3) -> None:
+def _wait_for_server(url: str, max_wait: int = 300, interval: int = 3) -> None:
     """
     Poll /health until the server responds or max_wait seconds elapse.
 
