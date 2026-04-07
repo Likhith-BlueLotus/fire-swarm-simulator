@@ -788,6 +788,41 @@ def run_task(client: OpenAI, task: str, deadline: float) -> Dict[str, Any]:
 # Entry point
 # ---------------------------------------------------------------------------
 
+def _wait_for_server(url: str, max_wait: int = 120, interval: int = 3) -> None:
+    """
+    Poll /health until the server responds or max_wait seconds elapse.
+
+    The validator launches inference.py in the same container as the environment
+    server. The server may still be initialising when inference.py starts, so a
+    direct single-shot health check raises RuntimeError before the server is ready.
+    Retry with backoff to give the server up to max_wait seconds to become healthy.
+    """
+    health_url = f"{url}/health"
+    deadline   = time.time() + max_wait
+    attempt    = 0
+    while time.time() < deadline:
+        attempt += 1
+        try:
+            health = _get(health_url, timeout=5)
+            log.info("Server health: %s (attempt %d)", health.get("status", "unknown"), attempt)
+            return  # server is up
+        except Exception as exc:
+            remaining = int(deadline - time.time())
+            log.info(
+                "Waiting for server at %s (attempt %d, %ds remaining): %s",
+                health_url, attempt, remaining, exc,
+            )
+            time.sleep(interval)
+    # Last attempt — raise a descriptive error if still not reachable
+    try:
+        health = _get(health_url, timeout=10)
+        log.info("Server health: %s", health.get("status", "unknown"))
+    except Exception as exc:
+        raise RuntimeError(
+            f"FireSwarm server at {url} did not become healthy within {max_wait}s: {exc}"
+        ) from exc
+
+
 def main() -> None:
     # HF_TOKEN is the only mandatory credential with no permitted default.
     if not API_KEY:
@@ -796,14 +831,7 @@ def main() -> None:
             "Export it before running: export HF_TOKEN=hf_..."
         )
 
-    try:
-        health = _get(f"{OPENENV_URL}/health", timeout=10)
-        log.info("Server health: %s", health.get("status", "unknown"))
-    except Exception as exc:
-        raise RuntimeError(
-            f"Cannot reach FireSwarm server at {OPENENV_URL}: {exc}\n"
-            "Start the server first: uvicorn server.app:app --port 7860"
-        ) from exc
+    _wait_for_server(OPENENV_URL)
 
     llm_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     deadline   = time.time() + WALL_CLOCK_BUDGET
