@@ -70,9 +70,14 @@ tasks:
 
   - id:          hard
     description: >
-      Five-drone swarm, 25×25 grid, 8 fire seeds spread across quadrants, fast burn
-      (t_burn=5), double wind (wind_mult=2). MAX_SPEED=2 forces ≥5 navigation steps.
-      Coordinate refuelling under pressure within 70 steps.
+      Five-drone swarm, 25×25 grid, 8 fire seeds spread across all quadrants, fast burn
+      (t_burn=5), double wind (wind_mult=2.0, shamal scenario), base_ignite=0.10.
+      MAX_SPEED=2 forces ≥5 navigation steps before first pump; CA spread causes fires
+      to peak at 4× initial count (33 active cells) before suppression begins.
+      Drones carry 10 kg retardant and must coordinate multi-hop refuelling at corner
+      stations while fires relapse. Gilbert-Elliott DDS model degrades ~40% of
+      BEST_EFFORT broadcasts, requiring coordination under stale peer telemetry.
+      Coordinate all five drones to suppress every fire within 70 steps.
     difficulty:  hard
     max_steps:   70
     grader:      programmatic

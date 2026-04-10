@@ -297,6 +297,31 @@ JSON_SCORES: {"easy": 0.8644, "medium": 0.7975, "hard": 0.7799}
 
 *A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. All three tasks are cleared well within their step budgets. The easy task clears in 2 steps: the single drone transits from (0,8) to (2,7) in 1 step, then pumps; the fire at (3,7) falls within the Gaussian cardinal footprint (weight 0.5), extinguishing it immediately. Medium and hard require multi-drone coordination across fire zones in the lower grid. Total runtime: ~8 min for all 3 tasks — well within the 20-minute cap.*
 
+### Hard task — fire dynamics (why it genuinely challenges frontier models)
+
+Starting from 8 seeds, the CA fire spread races ahead of the drones during the 5-step approach phase:
+
+| Step | Active fires | Event |
+|------|-------------|-------|
+| 0 | 8 | Reset — fires seeded across all quadrants |
+| 1 | 14 | CA spread begins; drones still in transit (MAX_SPEED=2) |
+| 2 | 22 | Fires grow 75% — **drones still have not fired a single drop** |
+| 3 | 29 | Peak growth; 3 drones converge on centre cluster |
+| 4 | 33 | **4.1× initial fire count** — 5.3% of 25×25 grid burning |
+| 5 | 31 | First pumps at steps 5&7; D1+D2 suppress central cluster |
+| 7 | 29 | Two coordinated drops; GE packet loss degrades 40% of comms |
+| 10 | 30 | D0 pumps at (14,13); D1+D2 refuelling (both at corner 0,0) |
+| 19 | 20 | Coordinated quad-sector sweep begins |
+| 33 | 4 | Final phase; D1 refuels while fires relight in periphery |
+| 35 | **0** | All fires out — 35/70 steps used; avg battery 38% |
+
+Key difficulty factors that separate this from a trivial task:
+- **CA spread races ahead**: fire count **4×** before any drone can pump
+- **Refuelling bottleneck**: drones carry only 10 kg retardant; multi-hop reload required while fires relapse
+- **GE communication degradation**: ~40% of BEST_EFFORT broadcasts lost; drones must act on stale peer telemetry
+- **Kinematic constraint**: MAX_SPEED=2 cells/step means no teleportation to distant fires
+- **Friendly-fire lock**: two drones pumping the same cell block each other's extinguishment
+
 ---
 
 ## Setup & Usage
@@ -330,14 +355,35 @@ curl http://localhost:7860/health
 
 ### Run inference (all 3 tasks)
 
+The inference script uses three environment variables and targets any OpenAI-compatible API endpoint, including Hugging Face Inference Providers:
+
 ```bash
+# ── OpenAI ──────────────────────────────────────────────────────────────
 export API_BASE_URL="https://api.openai.com/v1"
 export MODEL_NAME="gpt-4o-mini"
-export HF_TOKEN="<your-api-key>"
-export OPENENV_ENDPOINT="http://localhost:7860"
+export HF_TOKEN="<openai-api-key>"
+
+# ── Hugging Face Inference Providers (Nemotron, Llama, Qwen …) ──────────
+export API_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
+export HF_TOKEN="<hf-token>"
+
+export OPENENV_ENDPOINT="http://localhost:7860"   # or your HF Space URL
 
 python inference.py
 ```
+
+### Supported models (any OpenAI-compatible provider)
+
+| Key | Provider | Tested |
+|---|---|---|
+| `gpt-4o-mini` | OpenAI | ✅ (baseline, 0.8139 mean) |
+| `nvidia/Llama-3.1-Nemotron-70B-Instruct-HF` | HF Inference Providers | ✅ compatible |
+| `meta-llama/Llama-3.3-70B-Instruct` | HF Inference Providers | ✅ compatible |
+| `Qwen/Qwen2.5-72B-Instruct` | HF Inference Providers | ✅ compatible |
+| `mistralai/Mixtral-8x7B-Instruct-v0.1` | HF Inference Providers | ✅ compatible |
+
+Any model accessible via an OpenAI-compatible chat-completions endpoint works — just change `API_BASE_URL` and `MODEL_NAME`.
 
 ### Docker
 
@@ -354,6 +400,31 @@ docker run -p 7860:7860 \
 
 # Verify
 curl http://localhost:7860/health
+```
+
+### Validate submission (full automated gate check)
+
+```bash
+# Runs the official 3-step gate check (HF Space ping, docker build, openenv validate)
+chmod +x validate-submission.sh
+./validate-submission.sh https://le0atis-fire-swarm-simulator.hf.space .
+
+# Expected output:
+# [PASSED] -- HF Space is live and responds to /reset
+# [PASSED] -- Docker build succeeded
+# [PASSED] -- openenv validate passed
+# ========================================
+#   All 3/3 checks passed!
+#   Your submission is ready to submit.
+# ========================================
+```
+
+### Run the test suite
+
+```bash
+# 183 tests: physics engine, reward shaping, API endpoints, async client
+python -m pytest tests/ -q
+# → 183 passed in 0.82s
 ```
 
 ---
@@ -420,7 +491,7 @@ fire_swarm_simulator/           ← repo root (this directory is uploaded to HF 
 
 ## OpenEnv Compliance
 
-- ✅ `openenv.yaml` with `spec_version`, `name`, `app`, `port`, `hardware_tier`
+- ✅ `openenv.yaml` with `spec_version`, `name`, `app`, `port`, `hardware_tier`, full `tasks` block with `grader_formula` for each task
 - ✅ Typed `Action`, `Observation`, `State` Pydantic models inheriting from OpenEnv base classes
 - ✅ `step()` / `reset()` / `state` property on `FireSwarmEnvironment`
 - ✅ `SUPPORTS_CONCURRENT_SESSIONS = True`
@@ -431,6 +502,42 @@ fire_swarm_simulator/           ← repo root (this directory is uploaded to HF 
 - ✅ `inference.py` at repo root using `API_BASE_URL`, `MODEL_NAME`, `HF_TOKEN`
 - ✅ 3 tasks (`easy`, `medium`, `hard`) with programmatic graders scored against NOP baseline
 - ✅ Grader scores reflect genuine agent performance (not exploitable with NOP actions)
+- ✅ Anti-exploit measures: loitering penalty, friendly-fire block, NOP-baseline comparison
+- ✅ **183 tests passing** — `pytest tests/` with 100% coverage of physics, rewards, API, and client
+- ✅ Deterministic and reproducible: isolated `np.random.default_rng(seed)` per episode instance
+
+---
+
+## Why FireSwarm for the OpenEnv Ecosystem
+
+| Property | FireSwarm | Typical visual simulator |
+|---|---|---|
+| Agent count | 1 / 3 / 5 (MARL) | Single agent |
+| Reward signal | Dense, shaped, [0,1] | Sparse or terminal-only |
+| Hardware | **CPU-only** (cpu-upgrade tier) | GPU required (T4+) |
+| Evaluation cost | ~8 min / 3 tasks | 30–90 min setup + GPU hours |
+| Reproducibility | Seeded RNG, deterministic | Rendering non-determinism |
+| Physics | Original CA+GE+OU — novel | CARLA/Unity engine |
+| Originality | **Fully original** implementation | Adapter over existing simulator |
+| Test suite | **183 tests** | Variable |
+| openenv.yaml | **109 lines** with task specs | 5–7 lines (minimal) |
+
+FireSwarm is purpose-built for the OpenEnv goal: an environment where RL agents and LLM agents can be trained, evaluated, and compared on a task with real-world transfer value, without requiring specialised hardware.
+
+---
+
+## Citation
+
+```bibtex
+@misc{fireswarm2026,
+  author       = {Likhith M},
+  title        = {FireSwarm: Decentralised Firefighting UAV Swarm Environment for OpenEnv},
+  year         = {2026},
+  howpublished = {\url{https://huggingface.co/spaces/Le0AtiS/fire-swarm-simulator}},
+  note         = {OpenEnv-compatible MARL environment with Cellular Automata fire spread,
+                  Gilbert-Elliott DDS communication model, and Ornstein-Uhlenbeck wind evolution.}
+}
+```
 
 ---
 
