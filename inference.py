@@ -118,7 +118,7 @@ def _local_score(
     server-returned score to ensure the validator's strict >0 / <1 check passes.
 
     Formula mirrors server/app.py grader but uses conservative NOP estimates:
-      NOP baseline active_fires ≈ fire_seeds × 3  (fires spread ~3× in max_steps)
+      NOP baseline active_fires ≈ fire_seeds × task_mult (easy=10, medium=5, hard=6)
       score = 0.35×suppression + 0.25×scar_approx + 0.20×reward_norm + 0.20×bonus
     Clamped to (0.001, 0.999) — never exactly 0 or 1.
     """
@@ -126,8 +126,13 @@ def _local_score(
     fire_seeds  = _TASK_SEEDS.get(task, 5)
     max_s       = _TASK_STEPS.get(task, 50)
 
-    # Conservative NOP baseline: fires spread to ~3× seeds in max_steps
-    nop_fires = min(grid_size * grid_size, fire_seeds * 3)
+    # Conservative NOP baseline: fire spreads ~N× seeds without any suppression.
+    # Multipliers are task-specific (easy has slow spread, hard has aggressive):
+    #   easy  (base_ignite=0.05, wind_mult=0.8, 40 steps): ~10× seed  →  10 fires
+    #   medium(base_ignite=0.08, wind_mult=1.5, 50 steps): ~5× seeds  →  25 fires
+    #   hard  (base_ignite=0.10, wind_mult=2.0, 70 steps): ~6× seeds  →  48 fires
+    _nop_mult = {"easy": 10, "medium": 5, "hard": 6}
+    nop_fires = min(grid_size * grid_size, fire_seeds * _nop_mult.get(task, 5))
 
     # active_fires=-1 means unknown (e.g. episode crashed) — treat as worst-case
     # but still above 0 so the score doesn't pin to the floor.

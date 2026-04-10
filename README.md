@@ -249,7 +249,7 @@ Key hyperparameter notes:
 | Sample efficiency | 0 environment steps needed | ~500k steps to match or surpass LLM |
 | Interpretability | Prompt-readable decision trace | Opaque weight tensor |
 
-The LLM baseline scores **0.81 overall** without any environment interaction during training. All three tasks are cleared well within their step budgets, demonstrating genuine navigation and coordination under communication noise. The easy task is cleared in ~8 steps: the single drone reaches the single fire seed at row 3 in 2 transit steps and extinguishes it with one Gaussian drop. A trained PPO policy would achieve even higher scores by learning optimal pump timing and tighter routing — the dense reward signal (proximity bonus + extinguishment signal) supports fast convergence.
+The LLM baseline scores **0.81 overall** (easy=0.86, medium=0.80, hard=0.78) without any environment interaction during training. All three tasks clear fires to zero well within their step budgets, demonstrating genuine navigation and coordination under communication noise and communication-degraded conditions. The easy task clears in 2 steps; medium in 37/50; hard in 35/70 with 5 coordinating drones. A trained PPO policy would achieve even higher scores by learning optimal pump timing and tighter routing — the dense reward signal (proximity bonus + extinguishment signal) supports fast convergence.
 
 ---
 
@@ -285,17 +285,17 @@ Measured with `gpt-4o-mini` (temperature=0.2).
 
 | Task             | Steps taken | Fires left | Score      |
 | ---------------- | ----------- | ---------- | ---------- |
-| `easy`           | 8 / 40      | 0          | **0.8312** |
+| `easy`           | 2 / 40      | 0          | **0.8644** |
 | `medium`         | 37 / 50     | 0          | **0.7975** |
-| `hard`           | 35 / 70     | 0          | **0.7946** |
-| **Overall mean** | —           | —          | **0.8078** |
+| `hard`           | 35 / 70     | 0          | **0.7799** |
+| **Overall mean** | —           | —          | **0.8139** |
 
 
 ```
-JSON_SCORES: {"easy": 0.8312, "medium": 0.7975, "hard": 0.7946}
+JSON_SCORES: {"easy": 0.8644, "medium": 0.7975, "hard": 0.7799}
 ```
 
-*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. All three tasks are cleared well within their step budgets. The easy task is cleared in ~8 steps: the single drone reaches the fire at row 3 in 2 transit steps, extinguishes it with one Gaussian drop, then mops up any secondary spread. Medium and hard require multi-drone coordination across fire zones in the lower grid. Total runtime: well within the 20-minute cap.*
+*A NOP agent (drones stationary, pump=0) scores ≈ 0.25 on all tasks. All three tasks are cleared well within their step budgets. The easy task clears in 2 steps: the single drone transits from (0,8) to (2,7) in 1 step, then pumps; the fire at (3,7) falls within the Gaussian cardinal footprint (weight 0.5), extinguishing it immediately. Medium and hard require multi-drone coordination across fire zones in the lower grid. Total runtime: ~8 min for all 3 tasks — well within the 20-minute cap.*
 
 ---
 

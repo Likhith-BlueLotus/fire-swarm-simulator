@@ -103,11 +103,14 @@ class TestReset:
     def test_step_count_zero_after_reset(self, env_easy):
         assert env_easy._state.step_count == 0
 
-    def test_unknown_task_falls_back_to_easy(self):
+    def test_unknown_task_falls_back_to_medium(self):
         env = FireSwarmEnvironment()
-        # Unknown task should not crash — falls back to easy config
+        # Unknown task should not crash — TASK_CONFIG.get(task, TASK_CONFIG["medium"])
+        # falls back to "medium", not "easy".
         obs = env.reset(task="nonexistent", seed=1)
         assert obs is not None
+        # Verify the fallback is medium (3 drones)
+        assert len(env.drones) == TASK_CONFIG["medium"]["num_drones"]
 
     def test_deterministic_with_same_seed(self):
         env_a = FireSwarmEnvironment()
