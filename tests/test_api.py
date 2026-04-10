@@ -75,7 +75,7 @@ class TestTasks:
         assert set(tasks.keys()) == {"easy", "medium", "hard"}
 
     @pytest.mark.parametrize("task,drones,fires,steps,grid", [
-        ("easy",   1, 3,  30, 15),
+        ("easy",   1, 1,  40, 15),
         ("medium", 3, 5,  50, 20),
         ("hard",   5, 8,  70, 25),
     ])

@@ -69,7 +69,7 @@ class TestReset:
         assert alive == expected_drones
 
     @pytest.mark.parametrize("task,expected_fires", [
-        ("easy",   3),
+        ("easy",   1),
         ("medium", 5),
         ("hard",   8),
     ])

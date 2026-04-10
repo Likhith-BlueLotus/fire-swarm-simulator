@@ -113,14 +113,16 @@ _TASK_METADATA: Dict[str, dict] = {
     "easy": {
         "id":          "easy",
         "description": (
-            "Single-drone, 15×15 grid, 3 fire seeds spread across quadrants, "
-            "slow burn (t_burn=8). Agent must navigate and suppress fires within 30 steps."
+            "Single-drone, 15×15 grid, 1 fire seed placed near drone spawn (row 3), "
+            "slow fire spread (base_ignite=0.05, wind_mult=0.8, t_burn=10). "
+            "Drone reaches fire in 2 steps and must suppress it and any secondary spread "
+            "within 40 steps."
         ),
         "difficulty":  "easy",
-        "max_steps":   30,
+        "max_steps":   40,
         "grid_size":   15,
         "num_drones":  1,
-        "fire_seeds":  3,
+        "fire_seeds":  1,
         "score_range": [0.0, 1.0],
         "grader":      "programmatic",
     },

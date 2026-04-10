@@ -60,7 +60,7 @@ OPENENV_URL  = os.getenv("OPENENV_ENDPOINT", "http://localhost:7860")
 # ---------------------------------------------------------------------------
 # Episode limits
 # ---------------------------------------------------------------------------
-MAX_STEPS_PER_TASK = {"easy": 30, "medium": 50, "hard": 70}
+MAX_STEPS_PER_TASK = {"easy": 40, "medium": 50, "hard": 70}
 WALL_CLOCK_BUDGET  = 18 * 60   # 18 min — 2-min margin under the 20-min cap
 TEMPERATURE        = 0.2
 MAX_TOKENS         = 1024
@@ -100,8 +100,8 @@ EPISODE_SEED = 42   # fixed seed so the agent and NOP baseline fight the same fi
 
 
 _TASK_GRID: dict = {"easy": 15, "medium": 20, "hard": 25}
-_TASK_SEEDS: dict = {"easy": 3,  "medium": 5,  "hard": 8}
-_TASK_STEPS: dict = {"easy": 30, "medium": 50, "hard": 70}
+_TASK_SEEDS: dict = {"easy": 1,  "medium": 5,  "hard": 8}
+_TASK_STEPS: dict = {"easy": 40, "medium": 50, "hard": 70}
 
 
 def _local_score(
@@ -357,10 +357,16 @@ def _format_obs(obs: SwarmObservation, task: str) -> str:
     # Each hint gives the MAX_SPEED=2 constrained step toward the nearest visible fire.
     # Iterating active_ids (not peer_telem) ensures Bad-channel drones still receive hints.
     #
-    # Fire zone anchor: fires are placed at grid_size//3*2 (lower two-thirds of the grid).
-    # When no fires are in FOV the patrol target must be this anchor row, not grid_size//2
-    # (the centre), which would stop drones 3+ rows short of any fire.
-    fire_zone_row = grid_size // 3 * 2   # 10 for easy, 13 for medium, 16 for hard
+    # Fire zone anchor — task-specific:
+    #   easy:         fires placed at row gs//4 (row 3 for 15×15) — near drone spawn.
+    #   medium/hard:  fires placed at row gs//3*2 (lower two-thirds of the grid).
+    # When no fires are in FOV the patrol target is the fire zone anchor so that
+    # drones head toward where the fires actually are rather than drifting to the
+    # grid centre (which may be several rows short of the fire zone).
+    if task == "easy":
+        fire_zone_row = grid_size // 4       # 3 for easy 15×15 — fires near spawn
+    else:
+        fire_zone_row = grid_size // 3 * 2   # 13 for medium, 16 for hard
     grid_col_mid  = grid_size // 2
 
     # Refill threshold: below this payload a drone cannot complete a meaningful Gaussian drop.

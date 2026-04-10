@@ -38,11 +38,13 @@ max_concurrent_envs: 4
 tasks:
   - id:          easy
     description: >
-      Single-drone, 15×15 grid, 3 fire seeds spread across quadrants (min 4 cells apart),
-      slow burn (t_burn=8). Drones spawn at row 0; fires in lower 2/3 of grid.
-      MAX_SPEED=2 forces ≥3 navigation steps before first pump. Max 30 steps.
+      Single-drone, 15×15 grid, 1 fire seed placed near drone spawn (row gs//4=3),
+      slow fire spread (base_ignite=0.05, wind_mult=0.8, t_burn=10).
+      Drone spawns at row 0 and can reach the fire in 2 steps (Chebyshev distance ≤ 3
+      with MAX_SPEED=2). Agent must suppress the fire and any secondary spread within
+      40 steps. Designed to be genuinely achievable by a single LLM-guided drone.
     difficulty:  easy
-    max_steps:   30
+    max_steps:   40
     grader:      programmatic
     score_range: [0.0, 1.0]
     grader_formula: >

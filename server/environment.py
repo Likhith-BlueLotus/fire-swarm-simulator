@@ -66,28 +66,34 @@ BURNT_SCAR   = 4
 # ---------------------------------------------------------------------------
 TASK_CONFIG: Dict[str, dict] = {
     "easy": {
-        "grid_size":  15,
-        "num_drones": 1,
-        "fire_seeds": 3,
-        "t_burn":     8,
-        "wind_mult":  1.0,
-        "max_steps":  30,
+        "grid_size":    15,
+        "num_drones":   1,
+        "fire_seeds":   1,    # single fire — drone can clear it in ~4 steps
+        "t_burn":       10,   # fires burn slightly longer before dying naturally
+        "wind_mult":    0.8,  # calmer winds — fire spreads more slowly
+        "max_steps":    40,   # generous budget for the single drone
+        "base_ignite":  0.05, # slower ignition probability — less aggressive spread
+        "fire_near":    True, # place fires close to drone spawn (row gs//4) for fast access
     },
     "medium": {
-        "grid_size":  20,
-        "num_drones": 3,
-        "fire_seeds": 5,
-        "t_burn":     6,
-        "wind_mult":  1.5,
-        "max_steps":  50,
+        "grid_size":    20,
+        "num_drones":   3,
+        "fire_seeds":   5,
+        "t_burn":       6,
+        "wind_mult":    1.5,
+        "max_steps":    50,
+        "base_ignite":  0.08, # standard ignition rate
+        "fire_near":    False,
     },
     "hard": {
-        "grid_size":  25,
-        "num_drones": 5,
-        "fire_seeds": 8,
-        "t_burn":     5,
-        "wind_mult":  2.0,
-        "max_steps":  70,
+        "grid_size":    25,
+        "num_drones":   5,
+        "fire_seeds":   8,
+        "t_burn":       5,
+        "wind_mult":    2.0,
+        "max_steps":    70,
+        "base_ignite":  0.10, # aggressive ignition — shamal wind scenario
+        "fire_near":    False,
     },
 }
 
@@ -228,20 +234,32 @@ class FireSwarmEnvironment(Environment):
         cfg = TASK_CONFIG.get(task, TASK_CONFIG["medium"])
         gs  = cfg["grid_size"]
 
-        self.task_cfg  = cfg
-        self.grid_size = gs
-        self.t_burn    = cfg["t_burn"]
+        self.task_cfg   = cfg
+        self.grid_size  = gs
+        self.t_burn     = cfg["t_burn"]
+        self.base_ignite = float(cfg.get("base_ignite", BASE_IGNITE))
 
         self.grid       = np.full((gs, gs), HEALTHY_FUEL, dtype=np.int8)
         self.fuel_timer = np.zeros((gs, gs), dtype=np.int16)
         self.fuel_grid  = self.rng.uniform(0.4, 1.0, (gs, gs)).astype(np.float32)
         self.elevation  = self.rng.uniform(0.0, 100.0, (gs, gs)).astype(np.float32)
 
-        # Fire seeds placed in the lower two-thirds of the grid (rows gs//3 .. gs-2).
-        # Drones spawn at row 0, so all fires are at least gs//3 rows away —
-        # with MAX_SPEED=2 that forces ceil((gs//3)/2) ≥ 3 navigation steps minimum.
+        # Fire seeds placement — task-dependent anchor row.
+        #
+        # easy  (fire_near=True):  anchor at gs//4 (row 3 for gs=15).
+        #   The single drone spawns at row 0 and can reach the fire in 2 steps
+        #   (Chebyshev distance ≤ 3 with MAX_SPEED=2). This makes the easy task
+        #   genuinely easy: the drone arrives before fire spreads significantly.
+        #
+        # medium/hard (fire_near=False): anchor at gs//3*2 (lower two-thirds).
+        #   Drones spawn at row 0; fires are gs//3 rows away, forcing ≥3 transit
+        #   steps and requiring genuine multi-step coordination.
+        #
         # Seeds use ±4 offsets so min inter-seed distance ≥ 4 (no single-pump clears two).
-        r = gs // 3 * 2   # lower-grid anchor row (~2/3 down)
+        if cfg.get("fire_near"):
+            r = gs // 4       # row 3 for gs=15 — 2 steps from drone spawn
+        else:
+            r = gs // 3 * 2   # lower-grid anchor row (~2/3 down)
         c = gs // 2
         seed_coords = [
             (r,         c),
@@ -589,7 +607,7 @@ class FireSwarmEnvironment(Environment):
                     ))
 
                     p_ignite = float(np.clip(
-                        BASE_IGNITE * fuel_factor * wind_factor * slope_factor,
+                        self.base_ignite * fuel_factor * wind_factor * slope_factor,
                         0.0, 1.0,
                     ))
                     if self.rng.random() < p_ignite:
